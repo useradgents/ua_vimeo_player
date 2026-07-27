@@ -42,6 +42,8 @@ re-exports the public surface.
 | `vimeo_player_widget.dart` | The `VimeoVideoPlayer` widget: parameter resolution, webview hosting, callback dispatch, lifecycle. |
 | `controller/vimeo_player_controller.dart` | Imperative API, command queue/timeout, event → state reduction. |
 | `controller/vimeo_player_value.dart` | Immutable `VimeoPlayerValue` + `VimeoPlayerState`. |
+| `floating/vimeo_floating_player.dart` | `VimeoFloatingPlayer` host: keeps one player mounted, animates its rect between expanded and a draggable, corner-snapping floating window. |
+| `floating/vimeo_floating_player_controller.dart` | `VimeoFloatingPlayerController` + `VimeoFloatingMode`: owns the player, exposes expand/minimize/dismiss and status. |
 | `parameters/vimeo_player_parameters.dart` | The full typed parameter model + serializers. |
 | `parameters/vimeo_quality.dart`, `vimeo_preload.dart`, `vimeo_play_button_position.dart` | Parameter enums with wire values. |
 | `parameters/vimeo_color_palette.dart` | The `colors=` palette. |

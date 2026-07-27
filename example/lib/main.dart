@@ -73,6 +73,15 @@ class _PlayerDemoScreenState extends State<PlayerDemoScreen> {
         title: const Text('ua_vimeo_player'),
         actions: [
           IconButton(
+            tooltip: 'Floating mini-player demo',
+            icon: const Icon(Icons.picture_in_picture),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => const FloatingDemoScreen(),
+              ),
+            ),
+          ),
+          IconButton(
             tooltip: 'Parameters demo',
             icon: const Icon(Icons.tune),
             onPressed: () => Navigator.of(context).push(
@@ -401,6 +410,85 @@ class _ParametersDemoScreenState extends State<ParametersDemoScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Demonstrates the draggable, snap-to-corner floating mini-player.
+class FloatingDemoScreen extends StatefulWidget {
+  /// Creates the floating demo screen.
+  const FloatingDemoScreen({super.key});
+
+  @override
+  State<FloatingDemoScreen> createState() => _FloatingDemoScreenState();
+}
+
+class _FloatingDemoScreenState extends State<FloatingDemoScreen> {
+  final VimeoFloatingPlayerController _floating =
+      VimeoFloatingPlayerController();
+
+  @override
+  void dispose() {
+    _floating.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Floating mini-player')),
+      // Wrap the body so the player can float over it. The player stays mounted
+      // in one place, so switching modes never restarts playback.
+      body: VimeoFloatingPlayer(
+        controller: _floating,
+        videoId: kDemoVideoId,
+        parameters: const VimeoPlayerParameters(autoPlay: true, muted: true),
+        // Leave room at the top for the pinned expanded player.
+        expandedInsets: const EdgeInsets.only(bottom: 260),
+        child: ListView(
+          padding: const EdgeInsets.only(top: 240, left: 16, right: 16),
+          children: [
+            const Text(
+              'Scroll this content while the video keeps playing. Use the '
+              'buttons below to minimize it into a draggable corner window or '
+              'restore it.',
+            ),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                FilledButton.icon(
+                  onPressed: _floating.minimize,
+                  icon: const Icon(Icons.close_fullscreen),
+                  label: const Text('Minimize'),
+                ),
+                FilledButton.tonalIcon(
+                  onPressed: _floating.expand,
+                  icon: const Icon(Icons.open_in_full),
+                  label: const Text('Expand'),
+                ),
+                OutlinedButton.icon(
+                  onPressed: _floating.pause,
+                  icon: const Icon(Icons.pause),
+                  label: const Text('Pause (for other media)'),
+                ),
+                OutlinedButton.icon(
+                  onPressed: _floating.dismiss,
+                  icon: const Icon(Icons.stop),
+                  label: const Text('Dismiss'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            AnimatedBuilder(
+              animation: _floating,
+              builder: (context, _) => Text('Mode: ${_floating.mode.name}'),
+            ),
+            for (var i = 0; i < 20; i++) ListTile(title: Text('List item #$i')),
+          ],
+        ),
       ),
     );
   }

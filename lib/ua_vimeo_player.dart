@@ -12,6 +12,9 @@ export 'src/controller/vimeo_player_value.dart'
 export 'src/events/vimeo_player_error.dart'
     show VimeoErrorType, VimeoPlayerError;
 export 'src/events/vimeo_player_event.dart';
+export 'src/floating/vimeo_floating_player.dart' show VimeoFloatingPlayer;
+export 'src/floating/vimeo_floating_player_controller.dart'
+    show VimeoFloatingMode, VimeoFloatingPlayerController;
 export 'src/parameters/vimeo_color_palette.dart' show VimeoColorPalette;
 export 'src/parameters/vimeo_play_button_position.dart'
     show VimeoPlayButtonPosition;

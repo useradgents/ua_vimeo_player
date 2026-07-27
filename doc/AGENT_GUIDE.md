@@ -15,6 +15,8 @@ Everything public is exported from this one file. Never import from `src/`.
 ## The public surface (what exists)
 
 - **Widget:** `VimeoVideoPlayer`
+- **Floating mini-player:** `VimeoFloatingPlayer`, `VimeoFloatingPlayerController`,
+  `VimeoFloatingMode`
 - **Controller:** `VimeoPlayerController`
 - **State:** `VimeoPlayerValue`, `VimeoPlayerState`
 - **Parameters:** `VimeoPlayerParameters`, `VimeoColorPalette`, `VimeoQuality`,
@@ -34,6 +36,7 @@ Everything public is exported from this one file. Never import from `src/`.
 | Set an uncommon parameter | use `parameters: VimeoPlayerParameters(...)` |
 | Play an unlisted video | pass `privacyHash: '…'` |
 | Change the video without a new widget | `controller.loadVideo(id)` |
+| Shrink to a draggable floating window (keep playing) | `VimeoFloatingPlayer` + `VimeoFloatingPlayerController` |
 
 ## Recipe: minimal player
 
@@ -130,6 +133,36 @@ VimeoVideoPlayer(
 ```
 
 See the full field ↔ Vimeo-key table in the [README](../README.md#full-parameter-reference).
+
+## Recipe: floating mini-player
+
+```dart
+final floating = VimeoFloatingPlayerController();
+
+// dispose it in State.dispose()
+
+VimeoFloatingPlayer(
+  controller: floating,
+  videoId: '76979871',
+  parameters: const VimeoPlayerParameters(autoPlay: true, muted: true),
+  child: myPageBody, // the player floats over this
+);
+
+// Control from anywhere:
+floating.minimize(); // -> small draggable corner window, still playing
+floating.expand();   // -> large pinned view
+floating.dismiss();  // -> removed, playback stopped
+floating.pause();    // -> pause (e.g. before starting other app audio)
+```
+
+Rules:
+- **Never** wrap `VimeoVideoPlayer` in your own `Overlay` or move it between
+  parents to achieve this — that restarts playback. Use `VimeoFloatingPlayer`.
+- Place `VimeoFloatingPlayer` above your `Navigator` (`MaterialApp.builder`) if
+  you want playback to survive route changes; wrap a single screen otherwise.
+- Dispose the `VimeoFloatingPlayerController` you create.
+- `floating.player` is the same `VimeoPlayerController` documented below — use it
+  for `value`/`events`/seek/quality/etc.
 
 ## Precedence (important)
 

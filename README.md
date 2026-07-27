@@ -151,6 +151,85 @@ VimeoVideoPlayer(
 );
 ```
 
+## Floating mini-player (in-app)
+
+Shrink the playing video into a small, draggable window that floats over your
+app — like Picture-in-Picture, but **without leaving the app** and without
+interrupting playback. Drag it, release to snap to the nearest corner, tap to
+expand, or dismiss it.
+
+Wrap the content the player should float over with `VimeoFloatingPlayer` and
+drive it through a `VimeoFloatingPlayerController`:
+
+```dart
+final floating = VimeoFloatingPlayerController();
+
+// ...
+
+VimeoFloatingPlayer(
+  controller: floating,
+  videoId: '76979871',
+  parameters: const VimeoPlayerParameters(autoPlay: true, muted: true),
+  child: MyPageContent(),
+);
+
+// Drive it from anywhere:
+floating.minimize(); // shrink to a floating corner window
+floating.expand();   // restore the large pinned view
+floating.dismiss();  // remove it and stop playback
+```
+
+**How it works / why a host.** The player is a native web view; moving the
+widget elsewhere in the tree would recreate that view and restart playback.
+`VimeoFloatingPlayer` keeps the player mounted in one place and only animates its
+position and size, so playback is seamless across the transition. Don't roll
+your own `Overlay`/reparenting for this — use the host.
+
+**Placement.** Wrap a single screen's body for per-screen floating, or place it
+above your `Navigator` (e.g. `MaterialApp.builder`) to keep the video alive
+across route changes.
+
+**Coordinating with other audio.** The controller exposes the underlying
+`VimeoPlayerController` as `floating.player`, plus `play`/`pause` passthroughs
+and `value`/`events`. When your app starts its own media, call `floating.pause()`
+so the two don't overlap — Vimeo's `autopause` only reacts to *other Vimeo
+players*, not arbitrary native audio.
+
+### Customizing the floating tap
+
+By default, tapping the floating window expands it in place. Pass `onFloatingTap`
+to do something else — e.g. navigate back to the page the video belongs to, so an
+expanding video never lands in the header of an unrelated page:
+
+```dart
+VimeoFloatingPlayer(
+  controller: floating,
+  videoId: '76979871',
+  onFloatingTap: () => context.go('/article/42'),
+  child: myPageBody,
+);
+```
+
+Prefer this over watching the controller for a `floating → expanded` mode change:
+that cannot tell a user tap apart from your own `expand()` calls.
+
+### Background playback is not supported
+
+The floating window is **in-app only**: it lives in your widget tree, so it stops
+when the app is backgrounded. Handing the video to the platform's own
+picture-in-picture window is out of scope, and on iOS is not achievable at all
+from a web-based player — an inline `playsinline` video in a `WKWebView` is never
+handed to `AVPlayerViewController`, so nothing exists to start PiP automatically,
+and WebKit only honours a PiP request made from a user gesture inside the page.
+
+What *is* available: enable the `pictureInPicture` parameter (Vimeo's `pip`) to
+show the player's own PiP button. A tap on it is a real in-page gesture, so it
+works — and on iOS the resulting native window keeps playing when the app is
+backgrounded, provided your app has the `audio` background mode in `Info.plist`
+and an active `AVAudioSession` in the `playback` category. See
+[`doc/no_background_pip.md`](doc/no_background_pip.md) for the full
+investigation.
+
 ## Full parameter reference
 
 Every parameter below maps to a field on `VimeoPlayerParameters`. Booleans

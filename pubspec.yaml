@@ -2,7 +2,7 @@ name: ua_vimeo_player
 description: >-
   Play Vimeo videos in Flutter with full access to every documented player
   parameter, an imperative controller and a typed event stream. Android + iOS.
-version: 0.1.0
+version: 0.2.0
 repository: https://github.com/useradgents/ua_vimeo_player
 issue_tracker: https://github.com/useradgents/ua_vimeo_player/issues
 homepage: https://github.com/useradgents/ua_vimeo_player
