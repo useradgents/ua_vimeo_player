@@ -119,6 +119,13 @@ class _VimeoFloatingPlayerState extends State<VimeoFloatingPlayer>
   /// The corner the floating window snaps to.
   Alignment _corner = Alignment.bottomRight;
 
+  /// Set when a geometry prop changed, so the next build puts the player back on
+  /// its target rect. Those props feed [_expandedRect] and
+  /// [_floatingRectForCorner], but the rect itself is only recomputed on a mode
+  /// or layout change — without this the player would stay where the old props
+  /// had put it.
+  bool _geometryDirty = false;
+
   Size _available = Size.zero;
   EdgeInsets _safeArea = EdgeInsets.zero;
 
@@ -150,6 +157,13 @@ class _VimeoFloatingPlayerState extends State<VimeoFloatingPlayer>
         oldWidget.parameters != widget.parameters) {
       // Rebuild the cached player only when its inputs actually change.
       _player = null;
+    }
+    if (oldWidget.expandedAlignment != widget.expandedAlignment ||
+        oldWidget.expandedInsets != widget.expandedInsets ||
+        oldWidget.floatingMargin != widget.floatingMargin ||
+        oldWidget.floatingWidth != widget.floatingWidth ||
+        oldWidget.aspectRatio != widget.aspectRatio) {
+      _geometryDirty = true;
     }
   }
 
@@ -282,11 +296,17 @@ class _VimeoFloatingPlayerState extends State<VimeoFloatingPlayer>
         _safeArea = safeArea;
 
         if (!widget.controller.isHidden) {
-          if (_rect == null) {
-            // First layout: snap directly to the initial target.
+          // First layout snaps directly to the initial target; afterwards a new
+          // layout or new geometry props re-snap it, unless the rect is under
+          // someone else's control — a drag or a running transition, both of
+          // which recompute their own target when they end.
+          final resnap = _rect == null ||
+              ((layoutChanged || _geometryDirty) &&
+                  !_dragging &&
+                  !_animation.isAnimating);
+          if (resnap) {
             _rect = _targetRect();
-          } else if (layoutChanged && !_dragging && !_animation.isAnimating) {
-            _rect = _targetRect();
+            _geometryDirty = false;
           }
         }
 

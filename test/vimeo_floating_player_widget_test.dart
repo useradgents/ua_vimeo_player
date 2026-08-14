@@ -10,12 +10,16 @@ void main() {
     InAppWebViewPlatform.instance = FakeInAppWebViewPlatform();
   });
 
-  Widget wrap(VimeoFloatingPlayerController controller) {
+  Widget wrap(
+    VimeoFloatingPlayerController controller, {
+    Alignment expandedAlignment = Alignment.topCenter,
+  }) {
     return MaterialApp(
       home: Scaffold(
         body: VimeoFloatingPlayer(
           controller: controller,
           videoId: '76979871',
+          expandedAlignment: expandedAlignment,
           child: const Center(child: Text('page content')),
         ),
       ),
@@ -48,6 +52,21 @@ void main() {
     final floatingElement = tester.element(find.byType(VimeoVideoPlayer));
     // Same element ⇒ not reparented ⇒ playback preserved.
     expect(identical(expandedElement, floatingElement), isTrue);
+  });
+
+  testWidgets('moves the expanded player when expandedAlignment changes',
+      (tester) async {
+    final controller = VimeoFloatingPlayerController();
+    addTearDown(controller.dispose);
+
+    await tester.pumpWidget(wrap(controller));
+    final top = tester.getTopLeft(find.byType(VimeoVideoPlayer)).dy;
+
+    // Only the alignment changes: no mode change, no relayout — the two other
+    // ways the rect used to be recomputed.
+    await tester.pumpWidget(wrap(controller, expandedAlignment: Alignment.center));
+
+    expect(tester.getTopLeft(find.byType(VimeoVideoPlayer)).dy, greaterThan(top));
   });
 
   testWidgets('removes the player when dismissed', (tester) async {

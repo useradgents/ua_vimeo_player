@@ -4,6 +4,18 @@ All notable changes to this project are documented in this file. The format is
 based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.2.1
+
+### Fixed
+
+- `VimeoFloatingPlayer` now follows changes to its geometry props
+  (`expandedAlignment`, `expandedInsets`, `floatingMargin`, `floatingWidth`,
+  `aspectRatio`): the player's rect used to be recomputed only on a mode or
+  layout change, so a host that re-aligned the expanded player left it at its
+  previous rect. Most visible on rotation, where an app switching
+  `expandedAlignment` back one frame after the orientation change kept the
+  portrait player centred on the screen instead of pinned to the top.
+
 ## 0.2.0
 
 ### Added
