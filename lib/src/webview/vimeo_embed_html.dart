@@ -3,7 +3,9 @@ import 'dart:convert';
 import '../utils/vimeo_color.dart';
 import 'dart:ui' show Color;
 
+import '../parameters/vimeo_now_playing.dart';
 import 'vimeo_js_bridge.dart';
+import 'vimeo_now_playing_script.dart';
 
 /// Builds the local HTML document that hosts the Vimeo JS SDK player.
 ///
@@ -18,13 +20,18 @@ abstract final class VimeoEmbedHtml {
   /// greater than zero, is applied via `setCurrentTime` once the player loads,
   /// since the `#t=` fragment is not available with the options form.
   /// [backgroundColor] and [transparent] control the page background.
+  /// [nowPlaying] is the initial now-playing override posted to the player
+  /// iframe (see [VimeoNowPlayingScript]); later values go through
+  /// `window.__vimeoNowPlaying`.
   static String build({
     required Map<String, Object?> embedOptions,
     required double startSeconds,
     required Color backgroundColor,
     required bool transparent,
+    VimeoNowPlaying? nowPlaying,
   }) {
     final optionsJson = jsonEncode(embedOptions);
+    final nowPlayingJson = jsonEncode(nowPlaying?.toJson());
     final bgHex = VimeoColor.toHex(backgroundColor);
     final bgCss = transparent ? 'transparent' : '#$bgHex';
 
@@ -72,7 +79,34 @@ abstract final class VimeoEmbedHtml {
         } catch (e) {}
       }
 
+      // ── Now-playing override, posted to the player iframe where
+      //    VimeoNowPlayingScript listens. Re-posted on load and play: a
+      //    reloaded iframe starts over without it. ──
+      var nowPlaying = $nowPlayingJson;
+
+      // Posted even when null, so clearing the override restores Vimeo's own
+      // metadata.
+      function postNowPlaying() {
+        var frame = document.querySelector('#player iframe');
+        if (!frame || !frame.contentWindow) return;
+        var value = nowPlaying || {};
+        frame.contentWindow.postMessage({
+          type: '${VimeoNowPlayingScript.messageType}',
+          title: value.title,
+          artist: value.artist
+        }, '*');
+      }
+
+      window.__vimeoNowPlaying = function (value) {
+        nowPlaying = value;
+        postNowPlaying();
+      };
+
+      player.on('loaded', postNowPlaying);
+      player.on('play', postNowPlaying);
+
       function sendReady() {
+        postNowPlaying();
         return Promise.all([
           player.getDuration().catch(function () { return 0; }),
           player.getVideoTitle().catch(function () { return null; })

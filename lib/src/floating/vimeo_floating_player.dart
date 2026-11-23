@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../parameters/vimeo_now_playing.dart';
 import '../parameters/vimeo_player_parameters.dart';
 import '../vimeo_player_widget.dart';
 import 'vimeo_floating_player_controller.dart';
@@ -33,6 +34,7 @@ class VimeoFloatingPlayer extends StatefulWidget {
     required this.child,
     this.privacyHash,
     this.parameters,
+    this.nowPlaying,
     this.aspectRatio = 16 / 9,
     this.floatingWidth = 200,
     this.floatingMargin = const EdgeInsets.all(16),
@@ -60,6 +62,9 @@ class VimeoFloatingPlayer extends StatefulWidget {
 
   /// Additional player parameters. See [VimeoPlayerParameters].
   final VimeoPlayerParameters? parameters;
+
+  /// What the system media controls show. See [VimeoVideoPlayer.nowPlaying].
+  final VimeoNowPlaying? nowPlaying;
 
   /// The player's aspect ratio, used to size both states.
   final double aspectRatio;
@@ -154,7 +159,8 @@ class _VimeoFloatingPlayerState extends State<VimeoFloatingPlayer>
     }
     if (oldWidget.videoId != widget.videoId ||
         oldWidget.privacyHash != widget.privacyHash ||
-        oldWidget.parameters != widget.parameters) {
+        oldWidget.parameters != widget.parameters ||
+        oldWidget.nowPlaying != widget.nowPlaying) {
       // Rebuild the cached player only when its inputs actually change.
       _player = null;
     }
@@ -195,6 +201,7 @@ class _VimeoFloatingPlayerState extends State<VimeoFloatingPlayer>
       privacyHash: widget.privacyHash,
       controller: widget.controller.player,
       parameters: widget.parameters,
+      nowPlaying: widget.nowPlaying,
       aspectRatio: widget.aspectRatio,
       backgroundColor: widget.backgroundColor,
     );

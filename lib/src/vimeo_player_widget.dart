@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:collection';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
@@ -7,11 +9,13 @@ import 'package:url_launcher/url_launcher.dart';
 import 'controller/vimeo_player_controller.dart';
 import 'events/vimeo_player_error.dart';
 import 'events/vimeo_player_event.dart';
+import 'parameters/vimeo_now_playing.dart';
 import 'parameters/vimeo_player_parameters.dart';
 import 'utils/vimeo_time.dart';
 import 'utils/vimeo_uri_builder.dart';
 import 'webview/vimeo_embed_html.dart';
 import 'webview/vimeo_js_bridge.dart';
+import 'webview/vimeo_now_playing_script.dart';
 
 /// A widget that plays a Vimeo video using the official Vimeo Player JS SDK
 /// inside an [InAppWebView].
@@ -51,6 +55,7 @@ class VimeoVideoPlayer extends StatefulWidget {
     this.dnt,
     this.background,
     this.parameters,
+    this.nowPlaying,
     this.aspectRatio = 16 / 9,
     this.backgroundColor = Colors.black,
     this.onReady,
@@ -117,6 +122,11 @@ class VimeoVideoPlayer extends StatefulWidget {
   /// The full, typed parameter set. Flat arguments override matching keys here.
   final VimeoPlayerParameters? parameters;
 
+  /// Title and artist shown by the system media controls (iOS lock screen,
+  /// Control Center) instead of the video's Vimeo name and owner. Changing it
+  /// updates the controls in place, without reloading the player.
+  final VimeoNowPlaying? nowPlaying;
+
   /// The aspect ratio the player is laid out with. Defaults to 16:9.
   final double aspectRatio;
 
@@ -167,6 +177,7 @@ class _VimeoVideoPlayerState extends State<VimeoVideoPlayer> {
   late VimeoPlayerController _controller;
   bool _ownsController = false;
   StreamSubscription<VimeoPlayerEvent>? _eventSubscription;
+  InAppWebViewController? _webView;
   String _embedHtml = '';
 
   @override
@@ -216,6 +227,25 @@ class _VimeoVideoPlayerState extends State<VimeoVideoPlayer> {
       // Parameter-only changes require a fresh embed; reload the document.
       setState(() => _embedHtml = _buildEmbedHtml());
     }
+
+    if (widget.nowPlaying != oldWidget.nowPlaying) {
+      _pushNowPlaying();
+    }
+  }
+
+  /// Hands the current [VimeoVideoPlayer.nowPlaying] to the embed page, which
+  /// forwards it to the player iframe. A page still loading picks it up from
+  /// the HTML instead, so a failure here is harmless.
+  void _pushNowPlaying() {
+    final json = jsonEncode(widget.nowPlaying?.toJson());
+    unawaited(
+      _webView
+          ?.evaluateJavascript(
+            source:
+                'window.__vimeoNowPlaying && window.__vimeoNowPlaying($json);',
+          )
+          .catchError((_) => null),
+    );
   }
 
   @override
@@ -267,6 +297,7 @@ class _VimeoVideoPlayerState extends State<VimeoVideoPlayer> {
       startSeconds: startSeconds,
       backgroundColor: widget.backgroundColor,
       transparent: transparent,
+      nowPlaying: widget.nowPlaying,
     );
   }
 
@@ -315,11 +346,25 @@ class _VimeoVideoPlayerState extends State<VimeoVideoPlayer> {
           mimeType: 'text/html',
           encoding: 'utf-8',
         ),
+        // Runs inside the player iframe, where the video and its media session
+        // live — hence not main-frame only.
+        initialUserScripts: UnmodifiableListView([
+          UserScript(
+            source: VimeoNowPlayingScript.source,
+            injectionTime: UserScriptInjectionTime.AT_DOCUMENT_START,
+            forMainFrameOnly: false,
+          ),
+        ]),
         initialSettings: InAppWebViewSettings(
           transparentBackground: transparent,
           mediaPlaybackRequiresUserGesture: false,
           allowsInlineMediaPlayback: true,
           allowsPictureInPictureMediaPlayback: params.pictureInPicture ?? false,
+          // Android only: the web view pauses its media once hidden, i.e. as
+          // soon as the app leaves the foreground. iOS keeps playing on its
+          // own (with the `audio` background mode). No media controls come
+          // with it on Android.
+          allowBackgroundAudioPlaying: true,
           useHybridComposition: true,
           supportZoom: false,
           disableContextMenu: true,
@@ -356,6 +401,7 @@ class _VimeoVideoPlayerState extends State<VimeoVideoPlayer> {
   }
 
   void _onWebViewCreated(InAppWebViewController controller) {
+    _webView = controller;
     _controller.attachWebView(controller);
     controller.addJavaScriptHandler(
       handlerName: VimeoJsBridge.eventHandler,
